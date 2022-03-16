@@ -1,0 +1,16 @@
+C:\Users\mattw\source\repos\UNOConsole\UNOConsole\bin\Debug\net5.0\UNOConsole.exe
+C:\Users\mattw\source\repos\UNOConsole\UNOConsole\bin\Debug\net5.0\UNOConsole.deps.json
+C:\Users\mattw\source\repos\UNOConsole\UNOConsole\bin\Debug\net5.0\UNOConsole.runtimeconfig.json
+C:\Users\mattw\source\repos\UNOConsole\UNOConsole\bin\Debug\net5.0\UNOConsole.runtimeconfig.dev.json
+C:\Users\mattw\source\repos\UNOConsole\UNOConsole\bin\Debug\net5.0\UNOConsole.dll
+C:\Users\mattw\source\repos\UNOConsole\UNOConsole\bin\Debug\net5.0\ref\UNOConsole.dll
+C:\Users\mattw\source\repos\UNOConsole\UNOConsole\bin\Debug\net5.0\UNOConsole.pdb
+C:\Users\mattw\source\repos\UNOConsole\UNOConsole\obj\Debug\net5.0\UNOConsole.csproj.AssemblyReference.cache
+C:\Users\mattw\source\repos\UNOConsole\UNOConsole\obj\Debug\net5.0\UNOConsole.GeneratedMSBuildEditorConfig.editorconfig
+C:\Users\mattw\source\repos\UNOConsole\UNOConsole\obj\Debug\net5.0\UNOConsole.AssemblyInfoInputs.cache
+C:\Users\mattw\source\repos\UNOConsole\UNOConsole\obj\Debug\net5.0\UNOConsole.AssemblyInfo.cs
+C:\Users\mattw\source\repos\UNOConsole\UNOConsole\obj\Debug\net5.0\UNOConsole.csproj.CoreCompileInputs.cache
+C:\Users\mattw\source\repos\UNOConsole\UNOConsole\obj\Debug\net5.0\UNOConsole.dll
+C:\Users\mattw\source\repos\UNOConsole\UNOConsole\obj\Debug\net5.0\ref\UNOConsole.dll
+C:\Users\mattw\source\repos\UNOConsole\UNOConsole\obj\Debug\net5.0\UNOConsole.pdb
+C:\Users\mattw\source\repos\UNOConsole\UNOConsole\obj\Debug\net5.0\UNOConsole.genruntimeconfig.cache
