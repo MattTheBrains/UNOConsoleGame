@@ -1,6 +1,6 @@
 ﻿// OOP 4200 Final Project - UNO Card Game
 // Matthew Ware - 100472787
-// March 16 2022
+// March 27 2022
 using System;
 using System.Collections.Generic;
 
@@ -16,21 +16,38 @@ namespace UNOConsole
         {
             // Initialize the game, deck and discard pile, and player list
             Game theGame = new Game();
-            Deck theDeck = new Deck();
-            DiscardPile discardPile = new DiscardPile();
-            List<Player> playerList = new List<Player>();
-            theDeck.initializeDeck();
-            playerList = theGame.initializePlayers();
+            Game.thisDeck.theDeck = Deck.initializeDeck();
+            Deck drawPile = new Deck(Game.thisDeck);
+            Game.ThePile = drawPile;
+
+            Game.thisDeck.printDeck();
+            drawPile.printDeck();
+
+            Console.WriteLine("Deck size is " + drawPile.DeckSize);
+            //Console.WriteLine(drawPile.ToString());
+            Console.ReadKey();
+
+            Deck.shuffleDeck();
+            // theGame.drawPile = mainDeck;
+            Game.thisDeck.printDeck();
+            drawPile.printDeck();
+
+            Deck.shufflePile();
+            Game.thisDeck.printDeck();
+            drawPile.printDeck();
+
 
             // Show upon loading 
             Console.WriteLine("Welcome to UNO");
             Console.ReadKey();
 
             // Assign initial dealer
-            theGame.CurrentDealer = theGame.setDealer(playerList, theGame.ClockwiseTurns);
+            theGame.DealerIndex = theGame.setDealer(theGame.ClockwiseTurns);
+            Console.WriteLine(theGame.CurrentDealer.Name);
+            Console.ReadKey();
 
             // Run the main gaim loop through recurrsion
-            theGame.takeTurn(theGame, theDeck, discardPile, playerList);
+            theGame.takeTurn(drawPile);
         }
     }
 
@@ -42,8 +59,16 @@ namespace UNOConsole
         // Hold values for the current player and the current dealer, the turn over and turn direction
         private Player currentPlayer;
         private Player currentDealer;
+        private int dealerIndex;
+        private int playerIndex = 0;
         private bool turnOver = false;
         private bool clockwiseTurns = true;
+        private bool firstDealer = true;
+        public static Card topCard;
+        public static Deck thisDeck = new Deck();
+        public static Deck discardPile = new Deck();
+        public static Deck thePile = new Deck();
+        public static List<Player> playerList = new List<Player>();
 
         // Properties for above fields
         public Player CurrentPlayer
@@ -90,7 +115,62 @@ namespace UNOConsole
                 clockwiseTurns = value;
             }
         }
+        public int DealerIndex
+        {
+            get
+            {
+                return dealerIndex;
+            }
+            set
+            {
+                dealerIndex = value;
+            }
+        }
+        public int PlayerIndex
+        {
+            get
+            {
+                return playerIndex;
+            }
+            set
+            {
+                playerIndex = value;
+            }
+        }
+        public static Card TopCard
+        {
+            get
+            {
+                return topCard;
+            }
+            set
+            {
+                topCard = value;
+            }
+        }
 
+        public static Deck ThePile
+        {
+            get
+            {
+                return thePile;
+            }
+            set
+            {
+                thePile = value;
+            }
+        }
+        public static Deck ThisDeck
+        {
+            get
+            {
+                return thisDeck;
+            }
+            set
+            {
+                thisDeck = value;
+            }
+        }
         // Default Constructor
         public Game()
         {
@@ -102,7 +182,9 @@ namespace UNOConsole
         public void initializeGame()
         {
             // Set up players for the game
-            initializePlayers();
+            playerList = initializePlayers();
+            CurrentDealer = playerList[setDealer(true)];
+            CurrentPlayer = playerList[PlayerIndex];
         }
 
         // Return a List of Players after adding a human player and three computer players
@@ -111,103 +193,212 @@ namespace UNOConsole
             // Generate list and add the human player
             List<Player> playerList = new List<Player>();
             HumanPlayer user = new HumanPlayer();
+            user.Name = "Player";
             playerList.Add(user);
 
             // Add three computer players to the player list
             AIPlayer computer1 = new AIPlayer();
+            computer1.Name = "Computer 1";
             AIPlayer computer2 = new AIPlayer();
+            computer2.Name = "Computer 2";
             AIPlayer computer3 = new AIPlayer();
+            computer3.Name = "Computer 3";
             playerList.Add(computer1);
             playerList.Add(computer2);
             playerList.Add(computer3);
+
+            // Print players
+            for (int i = 0; i < 4; i++)
+            {
+                Console.WriteLine(playerList[i].ToString());
+            }
 
             // Return the list of all 4 players
             return playerList;
         }
 
         // Returns the player who is now the dealer from the list provided and direction of turns
-        public Player setDealer(List<Player> playerList, bool clockwiseTurns)
+        public int setDealer(bool clockwiseTurns)
         {
             // Check if the currentPlayer is unassigned and assign the dealer to a random player
-            if (currentPlayer == null)
+            if (firstDealer)
             {
                 Random randomPlayer = new Random();
-                this.CurrentDealer = playerList[randomPlayer.Next(4)];
+                DealerIndex = randomPlayer.Next(4);
+                firstDealer = false;
+                if (DealerIndex == 3)
+                {
+                    PlayerIndex = 0;
+                }
+                else PlayerIndex = DealerIndex + 1;
             }
             else
             {
-                this.CurrentDealer = this.CurrentPlayer; // change this to set next dealer
+                if (clockwiseTurns)
+                {
+                    DealerIndex++;
+                    if (DealerIndex > 3) DealerIndex = 0;
+                }
+                else
+                {
+                    DealerIndex--;
+                    if (DealerIndex < 0) DealerIndex = 3;
+                }
             }
             // Return the player who is the current dealer
-            return this.CurrentDealer; 
+            return DealerIndex; 
         }
 
         // Main Game Loop
-        public void takeTurn(Game theGame, Deck theDeck, DiscardPile discardPile, List<Player> playerList)
+        public void takeTurn(Deck sourceCards)
         {
-            if (this.turnOver)
+            //Main Game Loop that continues through recurrsion
+            // if round over
+            if (TurnOver)
             {
-                // At the end of a turn deal a new hand to each player using cards from the discard pile if needed
-                CurrentPlayer.dealHand(playerList, discardPile);
-                this.TurnOver = false;
-            }
+                // determine round winner
+                int winnerScore = 0;
+                int winnerIndex = 0;
+                // calculate score
+                for(int i = 0; i < 4; i++)
+                {
+                    int roundScore = 0;
+                    for ( int j = 0; j < playerList[i].ThePlayerHand.Count; j++)
+                    {
+                        roundScore += playerList[i].ThePlayerHand[j].CardValue;
+                    }
+                    if (playerList[i].ThePlayerHand.Count == 0) winnerIndex = i;
+                    winnerScore += roundScore;
+                }
+
+                playerList[winnerIndex].Score += winnerScore;
+                // if score > 500
+                if (playerList[winnerIndex].Score >= 500)
+                {
+                    Console.WriteLine("GAME WINNER IS " + playerList[winnerIndex].Name);
+                    Console.ReadKey();
+                    EndGame(thisDeck);
+                }
+                else
+                {
+                    // determine winner
+                    Console.WriteLine("The Winner is " + playerList[winnerIndex].Name);
+                    Console.ReadKey();
+                    // end game
+                }// else Deal Hand
+                DealerIndex = setDealer(ClockwiseTurns);
+                PlayerIndex = pickNextPlayer(ClockwiseTurns);
+                //CurrentDealer.dealHand();
+                TurnOver = false;
+                takeTurn(sourceCards);
+            // assign next player
+            }// else Next Player takes turn
             else
             {
-                // Perform Turn Options here
-                //this.TurnOver = true;
-            }
-            // Pick the next player and assign them to the current player
-            theGame.CurrentPlayer = pickNextPlayer(theGame.CurrentPlayer, playerList, theGame.ClockwiseTurns);
+                DealerIndex = setDealer(ClockwiseTurns);
+                PlayerIndex = pickNextPlayer(ClockwiseTurns);
+                TurnOver = false;
+                playerList[DealerIndex].dealHand(sourceCards);
 
-            // Self-Call to continue game through recoursion 
-            takeTurn(theGame, theDeck, discardPile, playerList);
+                for (int index = 0; index < 4; index++)
+                {
+                    playerList[index].displayPlayerHand();
+                    Console.WriteLine("");
+                }
+
+                // Continue to take turns until a player wins the round and TurnOver becomes true
+                playRound(sourceCards);
+            }
+            // turns continue until round ends ie end with call to takeTurn();
+            if (Deck.deckIndex >= 0) takeTurn(sourceCards);
+        }
+
+        // Main interaction of Players
+        public void playRound(Deck drawPile)
+        {
+            int lastIndex;
+            // continue until current player has 0 cards in hand
+            do
+            {
+                playerList[PlayerIndex].selectCard();
+                playerList[PlayerIndex].displayPlayerHand();
+                lastIndex = PlayerIndex;
+                PlayerIndex = pickNextPlayer(clockwiseTurns);
+
+            } while (playerList[lastIndex].ThePlayerHand.Count > 0 && Deck.pileIndex >= 0);
+
+            if(Deck.pileIndex < 0)
+            {
+                //Deck.resetDeck();
+                Deck.pileIndex = drawPile.DeckSize - 1;
+                playRound(drawPile);
+            }
+
+            if(playerList[lastIndex].ThePlayerHand.Count <= 0)
+            {
+                TurnOver = true;
+                takeTurn(drawPile);
+            }
+            drawPile.printDeck();
         }
 
         // Returns the player who is next in line to play due to last card played or in an order
-        public Player pickNextPlayer(Player thisPlayer, List<Player> playerList, bool clockwiseTurns)
+        public int pickNextPlayer(bool clockwiseTurns)
         {
             // Determine who is next to be the current player first in a clockwise direction
             if(clockwiseTurns)
             {
-                if(playerList[3] == thisPlayer)
-                {
-                    thisPlayer = playerList[0];
-                }
-                else if (playerList[2] == thisPlayer)
-                {
-                    thisPlayer = playerList[3];
-                }
-                else if (playerList[1] == thisPlayer)
-                {
-                    thisPlayer = playerList[2];
-                }
-                else
-                {
-                    thisPlayer = playerList[1];
-                }
+                playerIndex++;
+                if (playerIndex > 3) playerIndex = 0;
             }
             // Counter-Clockwise direction
             else
             {
-                if (playerList[3] == thisPlayer)
-                {
-                    thisPlayer = playerList[2];
-                }
-                else if (playerList[0] == thisPlayer)
-                {
-                    thisPlayer = playerList[3];
-                }
-                else if (playerList[1] == thisPlayer)
-                {
-                    thisPlayer = playerList[0];
-                }
-                else
-                {
-                    thisPlayer = playerList[1];
-                }
+                playerIndex--;
+                if (playerIndex < 0) playerIndex = 3;
             }
             // Return the next player to take a turn
-            return thisPlayer;
+            return playerIndex;
+        }
+
+        public void EndGame(Deck mainDeck)
+        {
+            string playAgain;
+            do
+            {
+                Console.WriteLine("Do you want to play again? ");
+                playAgain = Console.ReadLine();
+            } while (playAgain != "y" && playAgain != "Y" && playAgain != "n" && playAgain != "N");
+            
+            if (playAgain == "y" || playAgain == "Y")
+            {
+                //ResetGame();
+                for(int i = 0; i < 4; i++)
+                {
+                    playerList[i].Score = 0;
+                    playerList[i].ThePlayerHand.Clear();
+                }
+                discardPile.theDeck.Clear();
+                thePile.theDeck.Clear();
+                firstDealer = true;
+                thisDeck.theDeck.Clear();
+
+                initializeGame();
+
+                Deck.deckIndex = thePile.DeckSize;
+                DealerIndex = setDealer(ClockwiseTurns);
+                Console.WriteLine(CurrentDealer.Name);
+                //takeTurn();
+                Console.ReadKey();
+
+            }
+            else
+            {
+                Console.Clear();
+                Console.WriteLine("THANKS FOR PLAYING -- GOODBYE");
+                Console.ReadKey();
+                // go to end screen;
+            }
         }
     }
  
@@ -282,17 +473,43 @@ namespace UNOConsole
     class Deck
     {
         // Single static deck list of cards for play
-        public static List<Card> theDeck = new List<Card>();
-        
+        public List<Card> theDeck = new List<Card>();
+        public static int deckIndex = 107;
+        public static int pileIndex = 107;
+        private int deckSize;
+
+        public int DeckSize
+        {
+            get
+            {
+                return theDeck.Count;
+            }
+            set
+            {
+                deckSize = value;
+            }
+        }
         // Default constructor for the Deck
         public Deck()
         {
-            initializeDeck();
+            //initializeDeck();
+            //deckIndex = theDeck.Count;
+            //Console.WriteLine("The Deck Size is " + deckIndex);
+            //Console.ReadKey();
+        }
+
+        public Deck(Deck deck)
+        {
+            for(int i = 0; i < deck.DeckSize; i++)
+            {
+                theDeck.Add(deck.theDeck[i]);
+            }
         }
 
         // Create 108 black cards and assign values to each card
-        public void initializeDeck()
+        public static List<Card> initializeDeck()
         {
+            List<Card> theDeck = new List<Card>();
             for (int i = 0; i < 108; i++)
             {
                 Card aCard = new Card();
@@ -371,10 +588,12 @@ namespace UNOConsole
             {
                 theDeck[104 + i].assignCard(true, "wild", 14);
             }
+
+            return theDeck;
         } 
     
         // Static shuffle deck function to randomize the cards
-        public static void shuffleDeck()
+        public static Deck shuffleDeck()
         {
             // Randomize the deck and perform 100000 random swaps
             Random randomCard = new Random();
@@ -391,17 +610,78 @@ namespace UNOConsole
                 {
                     newIndex = randomCard.Next(108);
                 } while (newIndex == index);
-                tempCard = Deck.theDeck[index];
-                Deck.theDeck[index] = Deck.theDeck[newIndex];
-                Deck.theDeck[newIndex] = tempCard;
+                tempCard = Game.thisDeck.theDeck[index];
+                Game.thisDeck.theDeck[index] = Game.thisDeck.theDeck[newIndex];
+                Game.thisDeck.theDeck[newIndex] = tempCard;
             }
+            return Game.thisDeck;
+        }
+        public static Deck shufflePile()
+        {
+            // Randomize the deck and perform 100000 random swaps
+            Random randomCard = new Random();
+            // Shuffle the deck 100,000 times
+            for (int i = 0; i < 100000; i++)
+            {
+                // create a temporary card to hold one value
+                Card tempCard = new Card();
+                // create two indexes to swap
+                int index = randomCard.Next(Game.thePile.DeckSize);
+                int newIndex;
+                // make sure the indicies are unique
+                do
+                {
+                    newIndex = randomCard.Next(Game.thePile.DeckSize);
+                } while (newIndex == index);
+                tempCard = Game.thePile.theDeck[index];
+                Game.thePile.theDeck[index] = Game.thePile.theDeck[newIndex];
+                Game.thePile.theDeck[newIndex] = tempCard;
+            }
+            return Game.thePile;
         }
 
         // Remove a card from the deck
         public Card removeCard(Card aCard)
         {
-            Deck.theDeck.Remove(aCard);
             return aCard;
+        }
+
+        public static void resetDeck()
+        {
+            int anIndex = Game.discardPile.DeckSize - 1;
+            Console.WriteLine("Discard pile is " + anIndex);
+            Console.ReadKey();
+            Game.TopCard = Game.discardPile.theDeck[anIndex];
+            Game.discardPile.theDeck.RemoveAt(anIndex);
+            anIndex--;
+            Game.thePile.theDeck.Clear();
+
+            for(int i = pileIndex; i > 0;  i--)
+            {
+                Game.thePile.theDeck.Add(Game.discardPile.theDeck[i]);
+            }
+
+            Game.discardPile.theDeck.Clear();
+            //shuffleDeck();
+            shufflePile();
+            Game.ThePile.printPile();
+        }
+
+        public void printDeck()
+        {
+            Console.WriteLine("This Deck has " + DeckSize + " Cards.");
+            for (int i = 0; i < DeckSize; i++)
+            {
+                Console.WriteLine(theDeck[i].ToString());
+            }
+        }
+
+        public void printPile()
+        {
+            for (int i = 0; i < Game.thePile.DeckSize; i++)
+            {
+                Console.WriteLine(Game.thePile.theDeck[i].ToString());
+            }
         }
     }
 
@@ -443,6 +723,16 @@ namespace UNOConsole
         public CardHand()
         {
         }
+
+        public override string ToString()
+        {
+            string printCardHand = "";
+            for(int i = 0; i < TheHand.Count; i++)
+            {
+                printCardHand += TheHand[i].ToString();
+            }
+            return printCardHand;
+        }
     }
 
     /// <summary>
@@ -450,9 +740,12 @@ namespace UNOConsole
     /// </summary>
     class PlayerHand : CardHand
     {
+        List<Card> hand = new List<Card>();
+                
         // Default Constructor
         public PlayerHand()
         {
+            hand = TheHand;
         }
     }
 
@@ -461,35 +754,15 @@ namespace UNOConsole
     /// </summary>
     class ComputerHand : CardHand
     {
+        List<Card> hand = new List<Card>();
+
         // Default Constructor
         public ComputerHand()
         {
+            hand = TheHand;
         }
     }
 
-    /// <summary>
-    /// Discard Pile for the game object with a static list of cards
-    /// </summary>
-    class DiscardPile
-    {
-        private static List<Card> theDiscardPile;
-        public static List<Card> TheDiscardPile 
-        {
-            get
-            {
-                return theDiscardPile;
-            } 
-            set
-            {
-                theDiscardPile = value;
-            }
-        }
-        
-        // Default Constructor
-        public DiscardPile()
-        {
-        }
-    }
 
     /// <summary>
     /// Player class to hold all of the current player information
@@ -499,9 +772,10 @@ namespace UNOConsole
         // Fields used to hold name, score, current hand, and the card chosen to play
         private string name;
         private int score;
-        private static List<Card> playerHand = new List<Card>();
+        private List<Card> thePlayerHand = new List<Card>();
+        private List<Card> playableCards = new List<Card>();
         private Card cardToPlay;
-
+        
         // Properties to set and get the above fields
         public string Name
         {
@@ -525,15 +799,26 @@ namespace UNOConsole
                 score = value;
             }
         }
-        public static List<Card> ThePlayerHand
+        public List<Card> ThePlayerHand
         {
             get
             {
-                return playerHand;
+                return thePlayerHand;
             }
             set
             {
-                playerHand = value;
+                thePlayerHand = value;
+            }
+        }
+        public List<Card> PlayableCards
+        {
+            get
+            {
+                return playableCards;
+            }
+            set
+            {
+                playableCards = value;
             }
         }
         public Card CardToPlay
@@ -554,62 +839,119 @@ namespace UNOConsole
         }
 
         // Method to determine which card to play
-        public Card selectCard()
+        public void selectCard()
         {
-            return playCard();
+            PlayableCards.Clear();
+            for (int i = 0; i < ThePlayerHand.Count; i++)
+            {
+                if (ThePlayerHand[i].Colour == Game.TopCard.Colour || ThePlayerHand[i].CardValue == Game.TopCard.CardValue)
+                {
+                    PlayableCards.Add(ThePlayerHand[i]);
+                }
+            }
+
+            Card aCard;
+            if (PlayableCards.Count > 0)
+            {
+                aCard = PlayableCards[0];
+                CardToPlay = aCard;
+                playCard();
+            }
+            else
+            {
+                aCard = drawCard();
+                addToHand(aCard);
+                if (aCard.Colour == Game.TopCard.Colour || aCard.CardValue == Game.TopCard.CardValue)
+                {
+                    CardToPlay = aCard;
+                    PlayableCards.Add(aCard);
+                    playCard();
+                }
+            }
         }
 
         // Method to add a card to the players hand
         public void addToHand(Card aCard)
         {
             ThePlayerHand.Add(aCard);
-            Deck.theDeck.Remove(aCard);
         }
 
         // Method to draw a card from the deck
-        public void drawCard()
+        public Card drawCard()
         {
+            Card aCard;
+            if (Deck.pileIndex > 0)
+            {
+                aCard = Game.thePile.theDeck[Deck.pileIndex];
+                Deck.pileIndex--;
+            }
+            else
+            {
+                aCard = Game.thePile.theDeck[0];
+                Deck.resetDeck();
+            }
+            return aCard; 
         }
 
         // Deal a full round of cards to all four players
-        public void dealHand(List<Player> playerList, DiscardPile discards)
+        public void dealHand(Deck Pile)
         {
+            Card justACard = new Card();
+            Game.TopCard = Pile.theDeck[Deck.pileIndex];
+            Console.WriteLine("TOP CARD IS " + Game.TopCard.ToString());
             for (int j = 0; j < 7; j++)
             {
+                Console.WriteLine("This is Card " + j + " ");
                 for (int turn = 0; turn < 4; turn++)
                 {
-//                    if (Deck.theDeck.Count != 0)
-//                    {
-//                        playerList[turn].addToHand(Deck.theDeck[0]);
-//                        Deck.theDeck.RemoveAt(0);
-//                        for (int i = 0; i < playerList[turn].ThePlayerHand.Count; i++)
-//                        {
-//                            Console.WriteLine(playerList[turn].ThePlayerHand[i].ToString());
-//                        }
-//                    }
-//                    else
-//                    {
-//                        // This is not working
-//                        for (int i = 0; i < discards.TheDiscardPile.Count; i++)
-//                        {
-//                            Deck.theDeck.Add(discards.TheDiscardPile[i]);
-//                            discards.TheDiscardPile.RemoveAt(i);
-//                        }
-//                        Deck.shuffleDeck();
-//                    }
+                    Console.WriteLine("This is Player " + turn + " ");
+                    if (Deck.pileIndex > 0)
+                    {
+                        justACard = Game.thePile.theDeck[Deck.pileIndex];
+                        Game.playerList[turn].addToHand(justACard);
+                        Console.WriteLine(justACard.ToString());
+                        Deck.pileIndex--;
+                    }
+                    else
+                    {
+                        Deck.resetDeck();
+                        Deck.shufflePile();
+                        Deck.pileIndex = Game.thePile.DeckSize - 1;
+                    }
                 }
             }
         }
 
         // Play a card from the list of possible cards to play
-        public Card playCard()
+        public void playCard()
         {
-            return CardToPlay;
+            if (PlayableCards.Count > 0)
+            {
+                Game.TopCard = CardToPlay;
+                Console.WriteLine("TOP CARD IS " + Game.TopCard.ToString());
+                Game.discardPile.theDeck.Add(CardToPlay);
+                ThePlayerHand.Remove(CardToPlay);
+                Console.WriteLine("");
+            }
+            
         }
 
         // Begin a new game
         public void beginGame()
         {
+        }
+
+        public override string ToString()
+        {
+            return "This player is " + Name;
+        }
+
+        public void displayPlayerHand()
+        {
+            for(int i = 0; i < ThePlayerHand.Count; i++)
+            {
+                Console.WriteLine(ThePlayerHand[i].ToString());
+            }
         }
     }
 
@@ -618,8 +960,8 @@ namespace UNOConsole
     /// </summary>
     class HumanPlayer : Player
     {
-        private static PlayerHand userHand;
-        public static PlayerHand UserHand 
+        private List<Card> userHand;
+        public List<Card> UserHand 
         {
             get
             {
@@ -632,7 +974,7 @@ namespace UNOConsole
         }
         public HumanPlayer()
         {
-
+            userHand = ThePlayerHand;
         }
     }
 
@@ -642,9 +984,9 @@ namespace UNOConsole
     class AIPlayer : Player
     {
         // Field to hold the enemy hand
-        private ComputerHand opponentHand;
+        private List<Card> opponentHand;
         // Properties to get and set an enemies hand
-        public ComputerHand OpponentHand 
+        public List<Card> OpponentHand 
         {
             get
             {
@@ -659,7 +1001,7 @@ namespace UNOConsole
         // Default Constructor
         public AIPlayer()
         {
-
+            OpponentHand = ThePlayerHand;
         }
     }
 
